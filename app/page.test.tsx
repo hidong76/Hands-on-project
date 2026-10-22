@@ -167,7 +167,10 @@ describe("연휴 조합 추천 화면", () => {
     expect(first.getByText("9/11(토)~9/19(일)")).toBeInTheDocument();
     expect(first.getByText("9일")).toBeInTheDocument();
     expect(first.getByText("2일")).toBeInTheDocument();
-    expect(first.getByText("9/13(월), 9/17(금)")).toBeInTheDocument();
+    // 날짜마다 칩으로 감싸 한 덩어리 글자로는 찾을 수 없으므로, 칸에 보이는 글자가 같은지 읽는다.
+    expect(first.getByText("연차 쓰는 날").nextElementSibling).toHaveTextContent(
+      /^9\/13\(월\), 9\/17\(금\)$/,
+    );
     expect(first.getByText("4.5일")).toBeInTheDocument();
   });
 
@@ -185,5 +188,137 @@ describe("연휴 조합 추천 화면", () => {
     expect(dates).toHaveLength(30);
     expect(dates?.[0]).toBe("8/30(월)");
     expect(dates?.[29]).toBe("10/15(금)");
+  });
+
+  describe("풋노트의 2027년 제약 설명", () => {
+    const CONSTRAINT =
+      "현재는 초안 버전으로, 우주항공청 2027년 월력요항 기준 2027년 공휴일만 지원합니다.";
+    const EMPHASIS = "강조 표시된 날짜는 연차를 써야 하는 날입니다.";
+
+    it("처음 화면에서 2027년 제약 설명이 보이고 강조 설명은 보이지 않는다", () => {
+      render(<Home />);
+
+      expect(screen.getByText(CONSTRAINT)).toBeInTheDocument();
+      expect(screen.queryByText(EMPHASIS)).not.toBeInTheDocument();
+    });
+
+    it("결과에 연휴가 있으면 강조 설명과 제약 설명이 모두 보인다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "2", start: "2027-09-01", end: "2027-09-30" });
+
+      expect(screen.getByRole("table")).toBeInTheDocument();
+      expect(screen.getByText(EMPHASIS)).toBeInTheDocument();
+      expect(screen.getByText(CONSTRAINT)).toBeInTheDocument();
+    });
+
+    it("입력 오류(연차 0일)일 때도 제약 설명이 보이고 강조 설명은 보이지 않는다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "0" });
+
+      expect(screen.getByRole("alert")).toHaveTextContent("1~30");
+      expect(screen.getByText(CONSTRAINT)).toBeInTheDocument();
+      expect(screen.queryByText(EMPHASIS)).not.toBeInTheDocument();
+    });
+
+    it("조합이 없을 때(연차 1일, 1/4~1/4)도 제약 설명만 보이고 강조 설명은 없다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "1", start: "2027-01-04", end: "2027-01-04" });
+
+      expect(screen.getByText("만들 수 있는 연휴 조합이 없습니다")).toBeInTheDocument();
+      expect(screen.getByText(CONSTRAINT)).toBeInTheDocument();
+      expect(screen.queryByText(EMPHASIS)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("연차 쓰는 날 강조 칩", () => {
+    function leaveChips(container: HTMLElement) {
+      return [...container.querySelectorAll("mark")];
+    }
+
+    it("표 첫 행의 연차 쓰는 날(9/13·9/17)이 날짜마다 칩으로 강조된다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "2" });
+
+      const firstRow = within(screen.getByRole("table")).getAllByRole("row")[1];
+      const leaveCell = within(firstRow).getAllByRole("cell")[4];
+      expect(leaveChips(leaveCell).map((chip) => chip.textContent)).toEqual([
+        "9/13(월)",
+        "9/17(금)",
+      ]);
+      expect(leaveCell).toHaveTextContent("9/13(월), 9/17(금)");
+    });
+
+    it("카드의 연차 쓰는 날도 같은 날짜가 칩으로 강조된다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "2" });
+
+      const [firstCard] = within(
+        screen.getByRole("list", { name: "추천 조합 카드" }),
+      ).getAllByRole("listitem");
+      const leaveDates = within(firstCard).getByText("연차 쓰는 날")
+        .nextElementSibling as HTMLElement;
+      expect(leaveChips(leaveDates).map((chip) => chip.textContent)).toEqual([
+        "9/13(월)",
+        "9/17(금)",
+      ]);
+    });
+
+    it("표와 카드의 칩은 같은 모양(굵은 글씨, chart-4 글자색, 연한 chart-1 배경)이다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "2" });
+
+      const [tableChip] = leaveChips(screen.getByRole("table"));
+      const [cardChip] = leaveChips(
+        screen.getByRole("list", { name: "추천 조합 카드" }),
+      );
+      expect(tableChip.className).toBe(cardChip.className);
+      expect(tableChip).toHaveClass("font-semibold", "text-chart-4", "bg-chart-1/20");
+    });
+
+    it("칩 사이의 쉼표는 시각적으로만 숨기고 읽는 글자에는 남긴다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "2" });
+
+      const firstRow = within(screen.getByRole("table")).getAllByRole("row")[1];
+      const leaveCell = within(firstRow).getAllByRole("cell")[4];
+      const commas = [...leaveCell.querySelectorAll(".sr-only")];
+      expect(commas.map((comma) => comma.textContent)).toEqual([", "]);
+      expect(leaveCell.textContent).toBe("9/13(월), 9/17(금)");
+      // 칩 안에는 쉼표가 없다.
+      expect(leaveChips(leaveCell).every((chip) => !chip.textContent?.includes(","))).toBe(true);
+    });
+
+    it("연차 30일 카드에서도 날짜 사이마다 숨긴 쉼표가 있어 날짜 30개가 구분되어 읽힌다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "30" });
+
+      const [firstCard] = within(
+        screen.getByRole("list", { name: "추천 조합 카드" }),
+      ).getAllByRole("listitem");
+      const leaveDates = within(firstCard).getByText("연차 쓰는 날")
+        .nextElementSibling as HTMLElement;
+      const commas = [...leaveDates.querySelectorAll(".sr-only")];
+      expect(leaveChips(leaveDates)).toHaveLength(30);
+      expect(commas).toHaveLength(29);
+      expect(commas.every((comma) => comma.textContent === ", ")).toBe(true);
+    });
+
+    it("연차 날짜가 아닌 칸(연휴 기간, 일수)은 칩이 아니다", () => {
+      render(<Home />);
+
+      search({ leaveDays: "2" });
+
+      const firstRow = within(screen.getByRole("table")).getAllByRole("row")[1];
+      const cells = within(firstRow).getAllByRole("cell");
+      expect([0, 1, 2, 3, 5].every((i) => leaveChips(cells[i]).length === 0)).toBe(true);
+    });
   });
 });

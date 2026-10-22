@@ -34,7 +34,12 @@ import {
 } from "@/components/ui/table";
 
 import { formatDay } from "./format";
+import { LeaveDates } from "./leave-dates";
 import { type RecommendResult, recommend } from "./recommend";
+
+const EMPHASIS_NOTE = "강조 표시된 날짜는 연차를 써야 하는 날입니다.";
+const CONSTRAINT_NOTE =
+  "현재는 초안 버전으로, 우주항공청 2027년 월력요항 기준 2027년 공휴일만 지원합니다.";
 
 const DEFAULT_START = "2027-01-01";
 const DEFAULT_END = "2027-12-31";
@@ -167,7 +172,7 @@ export function HolidayCombosPage() {
                       <TableCell>{combo.totalDays}일</TableCell>
                       <TableCell>{combo.leaveDates.length}일</TableCell>
                       <TableCell>
-                        {combo.leaveDates.map(formatDay).join(", ")}
+                        <LeaveDates dates={combo.leaveDates} />
                       </TableCell>
                       <TableCell>{formatEfficiency(combo.efficiency)}</TableCell>
                     </TableRow>
@@ -196,7 +201,7 @@ export function HolidayCombosPage() {
                           <dd>{combo.leaveDates.length}일</dd>
                           <dt className="text-muted-foreground">연차 쓰는 날</dt>
                           <dd className="break-words">
-                            {combo.leaveDates.map(formatDay).join(", ")}
+                            <LeaveDates dates={combo.leaveDates} />
                           </dd>
                           <dt className="text-muted-foreground">
                             연차 1일당 쉬는 일수
@@ -212,6 +217,11 @@ export function HolidayCombosPage() {
           )}
         </section>
       )}
+
+      <footer className="flex flex-col gap-1 text-xs text-muted-foreground">
+        {result?.status === "ok" && <p>{EMPHASIS_NOTE}</p>}
+        <p>{CONSTRAINT_NOTE}</p>
+      </footer>
     </div>
   );
 }
