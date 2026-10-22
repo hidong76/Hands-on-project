@@ -148,8 +148,16 @@ function RecommendResults({
 
 type Mode = "recommend" | "plan";
 
+// 선택된 탭 바로 아래에 보여주는 설명
+const TAB_DESCRIPTIONS: Record<Mode, string> = {
+  plan: "평소처럼 짧게 자주 쉬고 싶을 때 써 보세요. 공휴일을 활용해 연차 1일로 4일 이상 쉬는 꿀조합을 골라 1년 플랜을 만들고, 남는 연차도 알려드려요.",
+  recommend:
+    "여행처럼 특별한 계획이 있을 때 써 보세요. 남은 연차로 만들 수 있는 가장 긴 연휴 조합을 순위로 비교해 드려요.",
+};
+const descriptionId = (mode: Mode) => `${mode}-tab-description`;
+
 export function HolidayCombosPage() {
-  const [mode, setMode] = useState<Mode>("recommend");
+  const [mode, setMode] = useState<Mode>("plan");
   const [leaveDays, setLeaveDays] = useState("");
   const [start, setStart] = useState(DEFAULT_START);
   const [end, setEnd] = useState(DEFAULT_END);
@@ -185,9 +193,24 @@ export function HolidayCombosPage() {
         className="gap-6"
       >
         <TabsList className="w-full sm:w-fit">
-          <TabsTrigger value="recommend">연휴 조합 추천</TabsTrigger>
-          <TabsTrigger value="plan">1년 꿀조합 플랜</TabsTrigger>
+          <TabsTrigger
+            value="plan"
+            aria-describedby={mode === "plan" ? descriptionId("plan") : undefined}
+          >
+            1년 꿀조합 플랜
+          </TabsTrigger>
+          <TabsTrigger
+            value="recommend"
+            aria-describedby={
+              mode === "recommend" ? descriptionId("recommend") : undefined
+            }
+          >
+            연휴 조합 추천
+          </TabsTrigger>
         </TabsList>
+        <p id={descriptionId(mode)} className="text-sm text-muted-foreground">
+          {TAB_DESCRIPTIONS[mode]}
+        </p>
 
         <Card>
           <CardHeader>
@@ -240,7 +263,11 @@ export function HolidayCombosPage() {
           </CardContent>
         </Card>
 
-        <TabsContent value="recommend" className="flex flex-col gap-6">
+        <TabsContent
+          value="recommend"
+          aria-describedby={descriptionId("recommend")}
+          className="flex flex-col gap-6"
+        >
           {recommendResult?.status === "invalid" && (
             <Alert variant="destructive">
               <AlertDescription>{recommendResult.message}</AlertDescription>
@@ -251,7 +278,11 @@ export function HolidayCombosPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="plan" className="flex flex-col gap-6">
+        <TabsContent
+          value="plan"
+          aria-describedby={descriptionId("plan")}
+          className="flex flex-col gap-6"
+        >
           {planResult?.status === "invalid" && (
             <Alert variant="destructive">
               <AlertDescription>{planResult.message}</AlertDescription>

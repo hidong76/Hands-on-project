@@ -6,6 +6,10 @@ import Home from "@/app/page";
 const CONSTRAINT =
   "현재는 초안 버전으로, 우주항공청 2027년 월력요항 기준 2027년 공휴일만 지원합니다.";
 const EMPHASIS = "강조 표시된 날짜는 연차를 써야 하는 날입니다.";
+const PLAN_DESCRIPTION =
+  "평소처럼 짧게 자주 쉬고 싶을 때 써 보세요. 공휴일을 활용해 연차 1일로 4일 이상 쉬는 꿀조합을 골라 1년 플랜을 만들고, 남는 연차도 알려드려요.";
+const RECOMMEND_DESCRIPTION =
+  "여행처럼 특별한 계획이 있을 때 써 보세요. 남은 연차로 만들 수 있는 가장 긴 연휴 조합을 순위로 비교해 드려요.";
 
 function enterInputs({
   leaveDays,
@@ -57,31 +61,83 @@ function summaryOf() {
 }
 
 describe("탭과 1년 꿀조합 플랜 화면", () => {
-  it("기본으로 연휴 조합 추천 탭이 열리고 제출 버튼 문구는 지금 그대로다", () => {
+  it("처음 화면에서 1년 꿀조합 플랜이 첫 번째 탭으로 선택되어 있고 제출 버튼은 \"1년 플랜 만들기\"다", () => {
     render(<Home />);
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      "1년 꿀조합 플랜",
+      "연휴 조합 추천",
+    ]);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[1]).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("button", { name: "1년 플랜 만들기" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "연휴 조합 찾기" })).not.toBeInTheDocument();
+  });
+
+  it("연휴 조합 추천 탭으로 바꾸면 입력 폼은 그대로 쓰고 제출 버튼 문구만 바뀐다", () => {
+    render(<Home />);
+
+    openRecommendTab();
 
     expect(
       screen.getByRole("tab", { name: "연휴 조합 추천", selected: true }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("tab", { name: "1년 꿀조합 플랜", selected: false }),
-    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "연휴 조합 찾기" })).toBeInTheDocument();
-  });
-
-  it("플랜 탭으로 바꾸면 입력 폼은 그대로 쓰고 제출 버튼 문구만 바뀐다", () => {
-    render(<Home />);
-
-    openPlanTab();
-
-    expect(
-      screen.getByRole("tab", { name: "1년 꿀조합 플랜", selected: true }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "1년 플랜 만들기" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "연휴 조합 찾기" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "1년 플랜 만들기" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("남은 연차 수")).toBeInTheDocument();
     expect(screen.getByLabelText("기간 시작일")).toHaveValue("2027-01-01");
     expect(screen.getByLabelText("기간 종료일")).toHaveValue("2027-12-31");
+  });
+
+  it("처음 화면에서 선택된 플랜 탭의 설명이 탭 바로 아래에 보이고 추천 탭의 설명은 보이지 않는다", () => {
+    render(<Home />);
+
+    expect(screen.getByText(PLAN_DESCRIPTION)).toBeInTheDocument();
+    expect(screen.queryByText(RECOMMEND_DESCRIPTION)).not.toBeInTheDocument();
+    expect(screen.getByRole("tablist").nextElementSibling).toHaveTextContent(
+      PLAN_DESCRIPTION,
+    );
+  });
+
+  it("탭을 바꾸면 설명도 그 탭의 문구로 바뀐다", () => {
+    render(<Home />);
+
+    openRecommendTab();
+    expect(screen.getByText(RECOMMEND_DESCRIPTION)).toBeInTheDocument();
+    expect(screen.queryByText(PLAN_DESCRIPTION)).not.toBeInTheDocument();
+    expect(screen.getByRole("tablist").nextElementSibling).toHaveTextContent(
+      RECOMMEND_DESCRIPTION,
+    );
+
+    openPlanTab();
+    expect(screen.getByText(PLAN_DESCRIPTION)).toBeInTheDocument();
+    expect(screen.queryByText(RECOMMEND_DESCRIPTION)).not.toBeInTheDocument();
+  });
+
+  it("화면 낭독기가 선택된 탭과 그 탭의 내용에 설명을 연결해 읽는다", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("tab", { name: "1년 꿀조합 플랜" })).toHaveAccessibleDescription(
+      PLAN_DESCRIPTION,
+    );
+    expect(screen.getByRole("tabpanel")).toHaveAccessibleDescription(PLAN_DESCRIPTION);
+
+    openRecommendTab();
+
+    expect(screen.getByRole("tab", { name: "연휴 조합 추천" })).toHaveAccessibleDescription(
+      RECOMMEND_DESCRIPTION,
+    );
+    expect(screen.getByRole("tabpanel")).toHaveAccessibleDescription(RECOMMEND_DESCRIPTION);
+  });
+
+  it("2027년 제약 설명은 두 탭 모두 처음 화면부터 보인다", () => {
+    render(<Home />);
+
+    expect(screen.getByText(CONSTRAINT)).toBeInTheDocument();
+    openRecommendTab();
+    expect(screen.getByText(CONSTRAINT)).toBeInTheDocument();
+    expect(screen.queryByText(EMPHASIS)).not.toBeInTheDocument();
   });
 
   it("연차 1일이면 요약과 날짜순 목록에 9/11~9/16 한 건이 나오고 남는 연차 안내는 없다", () => {
@@ -200,6 +256,7 @@ describe("탭과 1년 꿀조합 플랜 화면", () => {
 
   it("탭을 전환해도 기존 연휴 조합 추천의 결과와 안내는 이전과 같다", () => {
     render(<Home />);
+    openRecommendTab();
     enterInputs({ leaveDays: "1", start: "2027-05-04", end: "2027-05-31" });
     fireEvent.click(screen.getByRole("button", { name: "연휴 조합 찾기" }));
     const before = {

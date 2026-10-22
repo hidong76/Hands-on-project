@@ -12,6 +12,8 @@ function search({
   start?: string;
   end?: string;
 }) {
+  // 처음 화면은 1년 꿀조합 플랜 탭이므로, 연휴 조합 추천을 확인하려면 먼저 그 탭을 연다.
+  fireEvent.click(screen.getByRole("tab", { name: "연휴 조합 추천" }));
   if (leaveDays !== undefined) {
     fireEvent.change(screen.getByLabelText("남은 연차 수"), {
       target: { value: leaveDays },
