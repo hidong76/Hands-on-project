@@ -8,4 +8,4 @@
 
 **What was tried**: 연도 경계는 [holiday-combos 결정](../decisions/holiday-combos.md)의 2026년·2028년 규칙으로 처리했다.
 
-**Proposed next step**: `holiday-api-integration`을 마친 뒤 연도별 공휴일 데이터와 기본 기간을 정하고, 위 결정의 2026년·2028년 규칙을 함께 다시 정한다.
+**Proposed next step**: `holiday-api-integration`을 마친 뒤 연도별 공휴일 데이터와 기본 기간을 정하고, 위 결정의 2026년·2028년 규칙을 함께 다시 정한다. 다른 연도를 지원하면 1년 꿀조합 플랜의 "합이 같으면 사용 연차가 적은 쪽" 규칙을 검증할 사례(합이 같고 사용 연차만 다른 플랜)를 찾아 테스트로 추가한다. 2027년 달력에는 그런 사례가 없어 지금은 이 규칙을 테스트로 잡지 못한다.
