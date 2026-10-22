@@ -152,4 +152,38 @@ describe("연휴 조합 추천 화면", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  it("좁은 화면용 조합 카드에도 같은 정보를 보여준다", () => {
+    render(<Home />);
+
+    search({ leaveDays: "2", start: "2027-09-01", end: "2027-09-30" });
+
+    const cards = within(
+      screen.getByRole("list", { name: "추천 조합 카드" }),
+    ).getAllByRole("listitem");
+    expect(cards).toHaveLength(10);
+    const first = within(cards[0]);
+    expect(first.getByText("1위")).toBeInTheDocument();
+    expect(first.getByText("9/11(토)~9/19(일)")).toBeInTheDocument();
+    expect(first.getByText("9일")).toBeInTheDocument();
+    expect(first.getByText("2일")).toBeInTheDocument();
+    expect(first.getByText("9/13(월), 9/17(금)")).toBeInTheDocument();
+    expect(first.getByText("4.5일")).toBeInTheDocument();
+  });
+
+  it("연차 30일이어도 카드에 연차 쓰는 날 30개가 모두 들어 있다", () => {
+    render(<Home />);
+
+    search({ leaveDays: "30" });
+
+    const [firstCard] = within(
+      screen.getByRole("list", { name: "추천 조합 카드" }),
+    ).getAllByRole("listitem");
+    const dates = within(firstCard)
+      .getByText("연차 쓰는 날")
+      .nextElementSibling?.textContent?.split(", ");
+    expect(dates).toHaveLength(30);
+    expect(dates?.[0]).toBe("8/30(월)");
+    expect(dates?.[29]).toBe("10/15(금)");
+  });
 });

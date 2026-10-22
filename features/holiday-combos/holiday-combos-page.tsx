@@ -144,34 +144,71 @@ export function HolidayCombosPage() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>순위</TableHead>
-                  <TableHead>연휴 기간</TableHead>
-                  <TableHead>연휴 총 일수</TableHead>
-                  <TableHead>사용 연차</TableHead>
-                  <TableHead>연차 쓰는 날</TableHead>
-                  <TableHead>연차 1일당 쉬는 일수</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {result.combos.map((combo, index) => (
-                  <TableRow key={`${combo.start}-${combo.end}`}>
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell>
-                      {formatDay(combo.start)}~{formatDay(combo.end)}
-                    </TableCell>
-                    <TableCell>{combo.totalDays}일</TableCell>
-                    <TableCell>{combo.leaveDates.length}일</TableCell>
-                    <TableCell>
-                      {combo.leaveDates.map(formatDay).join(", ")}
-                    </TableCell>
-                    <TableCell>{formatEfficiency(combo.efficiency)}</TableCell>
+            <>
+              <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>순위</TableHead>
+                    <TableHead>연휴 기간</TableHead>
+                    <TableHead>연휴 총 일수</TableHead>
+                    <TableHead>사용 연차</TableHead>
+                    <TableHead>연차 쓰는 날</TableHead>
+                    <TableHead>연차 1일당 쉬는 일수</TableHead>
                   </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.combos.map((combo, index) => (
+                    <TableRow key={`${combo.start}-${combo.end}`}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        {formatDay(combo.start)}~{formatDay(combo.end)}
+                      </TableCell>
+                      <TableCell>{combo.totalDays}일</TableCell>
+                      <TableCell>{combo.leaveDates.length}일</TableCell>
+                      <TableCell>
+                        {combo.leaveDates.map(formatDay).join(", ")}
+                      </TableCell>
+                      <TableCell>{formatEfficiency(combo.efficiency)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              </div>
+              <ul
+                aria-label="추천 조합 카드"
+                className="flex flex-col gap-3 md:hidden"
+              >
+                {result.combos.map((combo, index) => (
+                  <li key={`${combo.start}-${combo.end}`}>
+                    <Card size="sm">
+                      <CardHeader>
+                        <CardDescription>{index + 1}위</CardDescription>
+                        <CardTitle>
+                          {formatDay(combo.start)}~{formatDay(combo.end)}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                          <dt className="text-muted-foreground">연휴 총 일수</dt>
+                          <dd>{combo.totalDays}일</dd>
+                          <dt className="text-muted-foreground">사용 연차</dt>
+                          <dd>{combo.leaveDates.length}일</dd>
+                          <dt className="text-muted-foreground">연차 쓰는 날</dt>
+                          <dd className="break-words">
+                            {combo.leaveDates.map(formatDay).join(", ")}
+                          </dd>
+                          <dt className="text-muted-foreground">
+                            연차 1일당 쉬는 일수
+                          </dt>
+                          <dd>{formatEfficiency(combo.efficiency)}</dd>
+                        </dl>
+                      </CardContent>
+                    </Card>
+                  </li>
                 ))}
-              </TableBody>
-            </Table>
+              </ul>
+            </>
           )}
         </section>
       )}
