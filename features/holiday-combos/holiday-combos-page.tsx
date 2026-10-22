@@ -24,6 +24,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -33,8 +34,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { formatDay } from "./format";
+import { formatDay, formatEfficiency } from "./format";
 import { LeaveDates } from "./leave-dates";
+import { buildPlan, type PlanResult } from "./plan";
+import { PlanResults } from "./plan-results";
 import { type RecommendResult, recommend } from "./recommend";
 
 const EMPHASIS_NOTE = "강조 표시된 날짜는 연차를 써야 하는 날입니다.";
@@ -50,19 +53,119 @@ function parseLeaveDays(text: string): number | null {
   return trimmed === "" ? null : Number(trimmed);
 }
 
-// 효율은 소수 첫째 자리까지, 정수면 소수점 없이 보여준다.
-const formatEfficiency = (value: number) => `${Number(value.toFixed(1))}일`;
+function RecommendResults({
+  result,
+}: {
+  result: Exclude<RecommendResult, { status: "invalid" }>;
+}) {
+  return (
+    <section className="flex flex-col gap-4" aria-label="추천 결과">
+      {result.notices.map((notice) => (
+        <Alert key={notice.kind} role="status">
+          <AlertDescription>{notice.message}</AlertDescription>
+        </Alert>
+      ))}
+
+      {result.status === "empty" ? (
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyTitle>{result.message}</EmptyTitle>
+            <EmptyDescription>
+              연차 수를 늘리거나 기간을 넓혀 다시 찾아 보세요.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>순위</TableHead>
+                  <TableHead>연휴 기간</TableHead>
+                  <TableHead>연휴 총 일수</TableHead>
+                  <TableHead>사용 연차</TableHead>
+                  <TableHead>연차 쓰는 날</TableHead>
+                  <TableHead>연차 1일당 쉬는 일수</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {result.combos.map((combo, index) => (
+                  <TableRow key={`${combo.start}-${combo.end}`}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>
+                      {formatDay(combo.start)}~{formatDay(combo.end)}
+                    </TableCell>
+                    <TableCell>{combo.totalDays}일</TableCell>
+                    <TableCell>{combo.leaveDates.length}일</TableCell>
+                    <TableCell>
+                      <LeaveDates dates={combo.leaveDates} />
+                    </TableCell>
+                    <TableCell>{formatEfficiency(combo.efficiency)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <ul
+            aria-label="추천 조합 카드"
+            className="flex flex-col gap-3 md:hidden"
+          >
+            {result.combos.map((combo, index) => (
+              <li key={`${combo.start}-${combo.end}`}>
+                <Card size="sm">
+                  <CardHeader>
+                    <CardDescription>{index + 1}위</CardDescription>
+                    <CardTitle>
+                      {formatDay(combo.start)}~{formatDay(combo.end)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                      <dt className="text-muted-foreground">연휴 총 일수</dt>
+                      <dd>{combo.totalDays}일</dd>
+                      <dt className="text-muted-foreground">사용 연차</dt>
+                      <dd>{combo.leaveDates.length}일</dd>
+                      <dt className="text-muted-foreground">연차 쓰는 날</dt>
+                      <dd className="break-words">
+                        <LeaveDates dates={combo.leaveDates} />
+                      </dd>
+                      <dt className="text-muted-foreground">
+                        연차 1일당 쉬는 일수
+                      </dt>
+                      <dd>{formatEfficiency(combo.efficiency)}</dd>
+                    </dl>
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+type Mode = "recommend" | "plan";
 
 export function HolidayCombosPage() {
+  const [mode, setMode] = useState<Mode>("recommend");
   const [leaveDays, setLeaveDays] = useState("");
   const [start, setStart] = useState(DEFAULT_START);
   const [end, setEnd] = useState(DEFAULT_END);
-  const [result, setResult] = useState<RecommendResult | null>(null);
+  const [recommendResult, setRecommendResult] =
+    useState<RecommendResult | null>(null);
+  const [planResult, setPlanResult] = useState<PlanResult | null>(null);
 
+  // 제출하면 열려 있는 탭의 결과만 계산한다. 각 탭은 마지막 결과를 유지한다.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setResult(recommend({ leaveDays: parseLeaveDays(leaveDays), start, end }));
+    const input = { leaveDays: parseLeaveDays(leaveDays), start, end };
+    if (mode === "plan") setPlanResult(buildPlan(input));
+    else setRecommendResult(recommend(input));
   }
+
+  const activeResult = mode === "plan" ? planResult : recommendResult;
 
   return (
     <div className="flex flex-col gap-6">
@@ -76,150 +179,92 @@ export function HolidayCombosPage() {
         </p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>연휴 조합 찾기</CardTitle>
-          <CardDescription>
-            주 5일 근무와 2027년 공휴일(대체공휴일 포함) 기준입니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="leave-days">남은 연차 수</FieldLabel>
-                <Input
-                  id="leave-days"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={leaveDays}
-                  onChange={(event) => setLeaveDays(event.target.value)}
-                />
-                <FieldDescription>1~30 사이 정수로 입력합니다.</FieldDescription>
-              </Field>
-              <FieldGroup className="sm:flex-row">
+      <Tabs
+        value={mode}
+        onValueChange={(value) => setMode(value as Mode)}
+        className="gap-6"
+      >
+        <TabsList className="w-full sm:w-fit">
+          <TabsTrigger value="recommend">연휴 조합 추천</TabsTrigger>
+          <TabsTrigger value="plan">1년 꿀조합 플랜</TabsTrigger>
+        </TabsList>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {mode === "plan" ? "1년 꿀조합 플랜 만들기" : "연휴 조합 찾기"}
+            </CardTitle>
+            <CardDescription>
+              주 5일 근무와 2027년 공휴일(대체공휴일 포함) 기준입니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="period-start">기간 시작일</FieldLabel>
+                  <FieldLabel htmlFor="leave-days">남은 연차 수</FieldLabel>
                   <Input
-                    id="period-start"
-                    type="date"
-                    value={start}
-                    onChange={(event) => setStart(event.target.value)}
+                    id="leave-days"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={leaveDays}
+                    onChange={(event) => setLeaveDays(event.target.value)}
                   />
+                  <FieldDescription>1~30 사이 정수로 입력합니다.</FieldDescription>
                 </Field>
-                <Field>
-                  <FieldLabel htmlFor="period-end">기간 종료일</FieldLabel>
-                  <Input
-                    id="period-end"
-                    type="date"
-                    value={end}
-                    onChange={(event) => setEnd(event.target.value)}
-                  />
-                </Field>
+                <FieldGroup className="sm:flex-row">
+                  <Field>
+                    <FieldLabel htmlFor="period-start">기간 시작일</FieldLabel>
+                    <Input
+                      id="period-start"
+                      type="date"
+                      value={start}
+                      onChange={(event) => setStart(event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="period-end">기간 종료일</FieldLabel>
+                    <Input
+                      id="period-end"
+                      type="date"
+                      value={end}
+                      onChange={(event) => setEnd(event.target.value)}
+                    />
+                  </Field>
+                </FieldGroup>
+                <Button type="submit" size="lg">
+                  {mode === "plan" ? "1년 플랜 만들기" : "연휴 조합 찾기"}
+                </Button>
               </FieldGroup>
-              <Button type="submit" size="lg">
-                연휴 조합 찾기
-              </Button>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
+            </form>
+          </CardContent>
+        </Card>
 
-      {result?.status === "invalid" && (
-        <Alert variant="destructive">
-          <AlertDescription>{result.message}</AlertDescription>
-        </Alert>
-      )}
-
-      {result && result.status !== "invalid" && (
-        <section className="flex flex-col gap-4" aria-label="추천 결과">
-          {result.notices.map((notice) => (
-            <Alert key={notice.kind} role="status">
-              <AlertDescription>{notice.message}</AlertDescription>
+        <TabsContent value="recommend" className="flex flex-col gap-6">
+          {recommendResult?.status === "invalid" && (
+            <Alert variant="destructive">
+              <AlertDescription>{recommendResult.message}</AlertDescription>
             </Alert>
-          ))}
-
-          {result.status === "empty" ? (
-            <Empty className="border">
-              <EmptyHeader>
-                <EmptyTitle>{result.message}</EmptyTitle>
-                <EmptyDescription>
-                  연차 수를 늘리거나 기간을 넓혀 다시 찾아 보세요.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <>
-              <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>순위</TableHead>
-                    <TableHead>연휴 기간</TableHead>
-                    <TableHead>연휴 총 일수</TableHead>
-                    <TableHead>사용 연차</TableHead>
-                    <TableHead>연차 쓰는 날</TableHead>
-                    <TableHead>연차 1일당 쉬는 일수</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {result.combos.map((combo, index) => (
-                    <TableRow key={`${combo.start}-${combo.end}`}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        {formatDay(combo.start)}~{formatDay(combo.end)}
-                      </TableCell>
-                      <TableCell>{combo.totalDays}일</TableCell>
-                      <TableCell>{combo.leaveDates.length}일</TableCell>
-                      <TableCell>
-                        <LeaveDates dates={combo.leaveDates} />
-                      </TableCell>
-                      <TableCell>{formatEfficiency(combo.efficiency)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              </div>
-              <ul
-                aria-label="추천 조합 카드"
-                className="flex flex-col gap-3 md:hidden"
-              >
-                {result.combos.map((combo, index) => (
-                  <li key={`${combo.start}-${combo.end}`}>
-                    <Card size="sm">
-                      <CardHeader>
-                        <CardDescription>{index + 1}위</CardDescription>
-                        <CardTitle>
-                          {formatDay(combo.start)}~{formatDay(combo.end)}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-                          <dt className="text-muted-foreground">연휴 총 일수</dt>
-                          <dd>{combo.totalDays}일</dd>
-                          <dt className="text-muted-foreground">사용 연차</dt>
-                          <dd>{combo.leaveDates.length}일</dd>
-                          <dt className="text-muted-foreground">연차 쓰는 날</dt>
-                          <dd className="break-words">
-                            <LeaveDates dates={combo.leaveDates} />
-                          </dd>
-                          <dt className="text-muted-foreground">
-                            연차 1일당 쉬는 일수
-                          </dt>
-                          <dd>{formatEfficiency(combo.efficiency)}</dd>
-                        </dl>
-                      </CardContent>
-                    </Card>
-                  </li>
-                ))}
-              </ul>
-            </>
           )}
-        </section>
-      )}
+          {recommendResult && recommendResult.status !== "invalid" && (
+            <RecommendResults result={recommendResult} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="plan" className="flex flex-col gap-6">
+          {planResult?.status === "invalid" && (
+            <Alert variant="destructive">
+              <AlertDescription>{planResult.message}</AlertDescription>
+            </Alert>
+          )}
+          {planResult && planResult.status !== "invalid" && (
+            <PlanResults result={planResult} />
+          )}
+        </TabsContent>
+      </Tabs>
 
       <footer className="flex flex-col gap-1 text-xs text-muted-foreground">
-        {result?.status === "ok" && <p>{EMPHASIS_NOTE}</p>}
+        {activeResult?.status === "ok" && <p>{EMPHASIS_NOTE}</p>}
         <p>{CONSTRAINT_NOTE}</p>
       </footer>
     </div>

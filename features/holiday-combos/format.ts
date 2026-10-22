@@ -10,3 +10,8 @@ export function formatDay(date: string): string {
 export function formatMonthDay(date: string): string {
   return formatDay(date).replace(/\(.\)$/, "");
 }
+
+// 연차 1일당 쉬는 일수는 소수 첫째 자리까지, 정수면 소수점 없이 보여준다.
+export function formatEfficiency(value: number): string {
+  return `${Number(value.toFixed(1))}일`;
+}
