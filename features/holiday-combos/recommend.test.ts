@@ -123,8 +123,8 @@ describe("연휴 조합 추천", () => {
     expect(first.efficiency).toBe(4.5);
   });
 
-  it.each([0, 16, 2.5, Number.NaN, null])(
-    "연차 수가 %s이면 계산하지 않고 1~15 정수로 입력하라고 안내한다",
+  it.each([0, 31, 2.5, Number.NaN, null])(
+    "연차 수가 %s이면 계산하지 않고 1~30 정수로 입력하라고 안내한다",
     (leaveDays) => {
       const result = recommend({
         leaveDays,
@@ -135,8 +135,21 @@ describe("연휴 조합 추천", () => {
       expect(result).toEqual({
         status: "invalid",
         reason: "leave-days",
-        message: expect.stringContaining("1~15"),
+        message: expect.stringContaining("1~30"),
       });
+    },
+  );
+
+  it.each([1, 15, 16, 30])(
+    "연차 %i일은 허용 범위(1~30) 안이라 기본 기간을 계산한다",
+    (leaveDays) => {
+      const result = recommend({
+        leaveDays,
+        start: "2027-01-01",
+        end: "2027-12-31",
+      });
+
+      expect(result.status).toBe("ok");
     },
   );
 

@@ -62,17 +62,26 @@ describe("연휴 조합 추천 화면", () => {
     expect(rows).toHaveLength(11); // 머리글 + 상위 10개
   });
 
-  it.each(["0", "16", "", "2.5", "abc"])(
-    "연차 수 %j를 넣으면 결과 없이 1~15 안내를 보여준다",
+  it.each(["0", "31", "", "2.5", "abc"])(
+    "연차 수 %j를 넣으면 결과 없이 1~30 안내를 보여준다",
     (leaveDays) => {
       render(<Home />);
 
       search({ leaveDays });
 
-      expect(screen.getByRole("alert")).toHaveTextContent("1~15");
+      expect(screen.getByRole("alert")).toHaveTextContent("1~30");
       expect(screen.queryByRole("table")).not.toBeInTheDocument();
     },
   );
+
+  it("연차 수 30일도 허용 범위 안이라 추천 표를 보여준다", () => {
+    render(<Home />);
+
+    search({ leaveDays: "30" });
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 
   it("2027년 밖 기간을 넣으면 2027년만 지원한다고 안내한다", () => {
     render(<Home />);

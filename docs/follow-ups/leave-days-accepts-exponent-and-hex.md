@@ -6,6 +6,6 @@
 
 **Suspected cause**: `Number()`가 지수·16진·2진 표기를 모두 숫자로 받아들이고, `recommend`는 받은 값이 정수이고 1~15 범위인지만 검사한다.
 
-**What was tried**: 고치지 않았다. 1~15 범위 안의 값이라 spec의 완료 기준을 깨지 않고, 일반적인 입력 경로에서 나오지 않는 표기다.
+**What was tried**: 고치지 않았다. 1~30 범위 안의 값이라 spec의 완료 기준을 깨지 않고, 일반적인 입력 경로에서 나오지 않는 표기다.
 
 **Proposed next step**: `parseLeaveDays`에서 `/^\d+$/`에 맞지 않는 입력은 NaN으로 넘기고, 그 사례를 `app/page.test.tsx`의 연차 수 안내 테스트에 추가한다.

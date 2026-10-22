@@ -90,7 +90,7 @@ export function HolidayCombosPage() {
                   value={leaveDays}
                   onChange={(event) => setLeaveDays(event.target.value)}
                 />
-                <FieldDescription>1~15 사이 정수로 입력합니다.</FieldDescription>
+                <FieldDescription>1~30 사이 정수로 입력합니다.</FieldDescription>
               </Field>
               <FieldGroup className="sm:flex-row">
                 <Field>

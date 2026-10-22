@@ -33,11 +33,11 @@ export type RecommendResult =
   | { status: "invalid"; reason: InvalidReason; message: string };
 
 const MIN_LEAVE_DAYS = 1;
-const MAX_LEAVE_DAYS = 15;
+const MAX_LEAVE_DAYS = 30;
 const SUPPORTED_YEAR = "2027";
 const FIRST_DAY = "2027-01-01";
 const LAST_DAY = "2027-12-31";
-// 연차를 최대 15일 쓰더라도 닿지 않는, 2028년 쪽 계산 상한.
+// 연차를 최대 30일 쓰더라도 닿지 않는, 2028년 쪽 계산 상한.
 const POOL_LAST_DAY = "2028-02-29";
 const TOP_COMBOS = 10;
 const NOTICE_2028 = "2028년으로 이어지는 연휴는 현재 계산하지 않습니다";
