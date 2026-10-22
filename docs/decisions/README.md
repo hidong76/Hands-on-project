@@ -4,3 +4,4 @@
 
 - [ui-composition](ui-composition.md) — Read when choosing UI components, page composition, visual tokens, or custom interface boundaries.
 - [holiday-combos](holiday-combos.md) — Read when changing how holiday combinations are calculated, ranked, or explained through boundary and out-of-year notices.
+- [honey-plan](honey-plan.md) — Read when changing the yearly honey combination plan: what counts as a honey combination, how the plan is chosen and tie-broken, the tab defaults, or its notices.

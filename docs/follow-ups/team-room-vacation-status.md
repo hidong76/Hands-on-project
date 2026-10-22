@@ -8,4 +8,4 @@
 
 **What was tried**: 구현하지 않았다. 한 번 정리한 형태는 있었다. 팀명과 이름 입력, 팀명은 앞뒤·중간 공백과 영문 대소문자를 무시, 근무일 기준 같은 날 휴가자 2명 이상이면 경고, 주말과 공휴일은 경고에서 제외, 삭제는 팀 방의 누구나, 다른 기기에서는 새로고침으로 반영(실시간은 범위 밖). 그 spec은 범위를 줄이며 지웠다. 저장소는 Supabase로 하고 팀 방 작업 때 `setup-supabase`로 설정하기로 했다.
 
-**Proposed next step**: 인증 방식을 먼저 정하고 PRODUCT.md의 인증 가정을 갱신한다. 그다음 `shape-idea`로 팀 방 spec을 새로 쓰고, 이어서 추천 조합에 겹침 정도를 연결한다. 연결할 때 순위와 기간 경계 안내는 [holiday-combos 결정](../decisions/holiday-combos.md)을 따른다.
+**Proposed next step**: 인증 방식을 먼저 정하고 PRODUCT.md의 인증 가정을 갱신한다. 그다음 `shape-idea`로 팀 방 spec을 새로 쓰고, 이어서 추천 조합에 겹침 정도를 연결하고, 1년 꿀조합 플랜 결과를 팀 방에 등록하는 연결도 같이 본다. 연결할 때 순위와 기간 경계 안내는 [holiday-combos 결정](../decisions/holiday-combos.md)을 따른다.
