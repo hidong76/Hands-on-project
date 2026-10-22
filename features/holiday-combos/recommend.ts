@@ -152,8 +152,16 @@ export function recommend(input: RecommendInput): RecommendResult {
 
   const excludedInTop = pool.slice(0, TOP_COMBOS).filter((c) => !isInside(c));
   const notices: Notice[] = [];
-  const within2027 = excludedInTop.find((c) => c.end <= LAST_DAY);
-  if (within2027) notices.push(periodNotice(within2027, start, end));
+  // 기간 경계 안내는 시작일 전날이나 종료일 다음날이 쉬는 날이라 쉬는 날 연속 구간이
+  // 기간 경계에서 잘린 경우에만 낸다. 잘린 쪽으로 이어지는 제외 조합 중 순위가 가장 높은 하나를 안내한다.
+  const startCut = isRestDay(addDays(start, -1));
+  const endCut = isRestDay(addDays(end, 1));
+  const cutExcluded = excludedInTop.find(
+    (c) =>
+      c.end <= LAST_DAY &&
+      ((startCut && c.start < start) || (endCut && c.end > end)),
+  );
+  if (cutExcluded) notices.push(periodNotice(cutExcluded, start, end));
   if (excludedInTop.some((c) => c.end > LAST_DAY)) {
     notices.push({ kind: "extends-2028", message: NOTICE_2028 });
   }

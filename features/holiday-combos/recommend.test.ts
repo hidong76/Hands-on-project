@@ -276,7 +276,7 @@ describe("연휴 조합 추천", () => {
     expect(result).toMatchObject({ status: "ok", notices: [] });
   });
 
-  it("연차 4일, 12/1~12/31이면 12/25~2028/1/2 연휴를 빼고 2028년 안내와 기간 밖 안내(11/26~12/1)를 함께 보여준다", () => {
+  it("연차 4일, 12/1~12/31이면 12/25~2028/1/2 연휴를 빼고 2028년 안내만 보여준다 (시작일 전날 11/30은 근무일이라 기간 경계 안내는 없다)", () => {
     const result = recommend({
       leaveDays: 4,
       start: "2027-12-01",
@@ -286,11 +286,6 @@ describe("연휴 조합 추천", () => {
     if (result.status !== "ok") throw new Error(result.status);
     expect(result.combos.every((c) => c.end <= "2027-12-31")).toBe(true);
     expect(result.notices).toEqual([
-      expect.objectContaining({
-        kind: "extends-period",
-        start: "2027-11-26",
-        end: "2027-12-01",
-      }),
       {
         kind: "extends-2028",
         message: "2028년으로 이어지는 연휴는 현재 계산하지 않습니다",
@@ -362,6 +357,49 @@ describe("연휴 조합 추천", () => {
 
       expect(combos.length).toBeGreaterThan(0);
       expect(combos.every((c) => c.leaveDates.length === 1)).toBe(true);
+    });
+  });
+
+  describe("기간 경계 안내는 쉬는 날 연속 구간이 기간 경계에서 잘린 경우에만 나온다", () => {
+    it("연차 1일, 5/1~5/31이면 시작일 전날(4/30)과 종료일 다음날(6/1)이 근무일이라 안내가 없다", () => {
+      const result = recommend({
+        leaveDays: 1,
+        start: "2027-05-01",
+        end: "2027-05-31",
+      });
+
+      expect(result).toMatchObject({ status: "ok", notices: [] });
+    });
+
+    it("연차 2일, 9/1~9/30이면 시작일 전날(8/31)과 종료일 다음날(10/1)이 근무일이라 안내가 없다", () => {
+      const result = recommend({
+        leaveDays: 2,
+        start: "2027-09-01",
+        end: "2027-09-30",
+      });
+
+      expect(result).toMatchObject({ status: "ok", notices: [] });
+    });
+
+    it("연차 1일, 2/1~2/28이면 종료일 다음날(3/1)이 쉬는 날이라 2/26(금)~3/1(월) 연휴를 안내한다", () => {
+      const result = recommend({
+        leaveDays: 1,
+        start: "2027-02-01",
+        end: "2027-02-28",
+      });
+
+      if (result.status !== "ok") throw new Error(result.status);
+      expect(result.notices).toEqual([
+        {
+          kind: "extends-period",
+          start: "2027-02-26",
+          end: "2027-03-01",
+          message: expect.stringContaining("기간을 3/1까지로 넓혀 보세요"),
+        },
+      ]);
+      expect(
+        result.combos.some((c) => c.start === "2027-02-26"),
+      ).toBe(false);
     });
   });
 });
